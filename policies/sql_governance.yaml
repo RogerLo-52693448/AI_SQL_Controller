@@ -1,0 +1,90 @@
+# SQL 控管政策
+# AI Agent 依據此文件審核所有 SQL 查詢
+
+version: "1.0"
+database: PostgreSQL
+updated: "2026-06-18"
+
+# ============================================
+# 命名規則
+# ============================================
+naming:
+  file_pattern: "{動作}_{對象}.sql"
+  examples:
+    - get_plate_records.sql
+    - count_daily_detections.sql
+    - insert_scan_log.sql
+  required_header: true
+  header_template: "templates/query_template.sql"
+
+# ============================================
+# 風險等級定義
+# ============================================
+risk_levels:
+  LOW:
+    operations: ["SELECT"]
+    auto_approve: true
+    description: "唯讀查詢，可直接執行"
+  MEDIUM:
+    operations: ["INSERT", "UPDATE"]
+    auto_approve: false
+    description: "資料異動，需確認影響範圍"
+  HIGH:
+    operations: ["DELETE", "TRUNCATE", "DROP", "ALTER"]
+    auto_approve: false
+    require_review: true
+    description: "高風險操作，需人工審核"
+
+# ============================================
+# 禁止操作
+# ============================================
+prohibited:
+  statements:
+    - "DROP TABLE"
+    - "DROP DATABASE"
+    - "TRUNCATE"
+  patterns:
+    - "SELECT *"           # 必須明確指定欄位
+    - "DELETE FROM.*WHERE 1=1"
+    - "UPDATE.*SET.*WHERE 1=1"
+
+# ============================================
+# 分類模組
+# ============================================
+modules:
+  ANPR:
+    description: "車牌辨識系統"
+    path: "queries/ANPR/"
+    tables:
+      - anpr_records
+      - plate_images
+      - vehicle_logs
+  Detection_LiDAR:
+    description: "LiDAR 偵測系統"
+    path: "queries/Detection_LiDAR/"
+    tables:
+      - lidar_scans
+      - point_cloud_data
+      - detection_events
+  Detection_RFID:
+    description: "RFID 偵測系統"
+    path: "queries/Detection_RFID/"
+    tables:
+      - rfid_tags
+      - scan_logs
+      - reader_status
+
+# ============================================
+# AI 審核規則
+# ============================================
+ai_review:
+  check_items:
+    - sql_injection_risk
+    - missing_where_clause
+    - performance_concerns
+    - proper_indexing_usage
+    - parameter_binding
+  suggest:
+    - query_optimization
+    - index_recommendations
+    - safer_alternatives
